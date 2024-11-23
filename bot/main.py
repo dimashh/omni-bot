@@ -2,7 +2,7 @@ import logging
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent
 from telegram.ext import ContextTypes
 from uuid import uuid4
-
+from model import get_model_response
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -32,6 +32,13 @@ async def inline_caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     )
     await context.bot.answer_inline_query(update.inline_query.id, results)
+
+async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = ' '.join(context.args)
+    preprompt = "Summarize the following text: \n\n"
+    
+    summary = get_model_response(''.join([preprompt, user_text]))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=summary)
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")

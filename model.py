@@ -1,5 +1,8 @@
 from mistralai import Mistral
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 model = "pixtral-12b-2409"
 
