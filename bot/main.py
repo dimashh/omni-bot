@@ -5,6 +5,7 @@ from uuid import uuid4
 from model import get_model_response
 from persistence.user_preference import USER_PREFERENCES
 from logger import log
+from search import search_maps, format_recommendation
 import json
 
 
@@ -166,7 +167,7 @@ async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_
     user_text = update.message.text
 
     USER_PREFERENCES[user_id] = f"(name: {user_name}) {user_text}"
-    
+
 async def plan_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("planning trip")
     log.info(USER_PREFERENCES)
@@ -182,7 +183,7 @@ async def plan_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
     return PLAN_TRIP
-    
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
@@ -199,3 +200,46 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
+
+
+async def recommend(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = ' '.join(context.args)
+    # soho, london
+    response = search_maps(user_text)
+
+    if response:
+        # Store restaurant names for the poll
+        recommendation_names = []
+
+        for place in response:
+            formatted_message = format_recommendation(place)
+            recommendation_names.append(place.get("title", "Unknown"))
+
+            if "thumbnail" in place and place["thumbnail"]:
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=place["thumbnail"],
+                    caption=formatted_message,
+                    parse_mode="HTML"
+                )
+            else:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=formatted_message,
+                    parse_mode="HTML"
+                )
+
+        # Create a poll with the restaurant names
+        if recommendation_names:
+            await context.bot.send_poll(
+                chat_id=update.effective_chat.id,
+                question="Which option do you prefer?",
+                options=recommendation_names,
+                is_anonymous=False,
+                allows_multiple_answers=True,
+            )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Sorry, no recommendations found.",
+        )
