@@ -1,9 +1,9 @@
 from mistralai import Mistral
+import os
 
-api_key = "XO5AGIwjxNz2zp7XXVvletaYqo7npFAS"
 model = "pixtral-12b-2409"
 
-client = Mistral(api_key=api_key)
+client = Mistral(api_key=os.getenv("MISTRAL_API_KEY"))
 
 
 def get_model_response(command: str):
