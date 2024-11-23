@@ -35,9 +35,14 @@ async def inline_caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = ' '.join(context.args)
-    preprompt = "Summarize the following text: \n\n"
+    preprompt = "Summarize the text below: \n\n"
     
     summary = get_model_response(''.join([preprompt, user_text]))
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=summary)
+
+async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = ' '.join(context.args)    
+    summary = get_model_response(user_text)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=summary)
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
