@@ -4,6 +4,7 @@ import os
 from telegram import Update, BotCommand
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, InlineQueryHandler, ConversationHandler, CallbackQueryHandler
 
+from bot.app import start_info, handle_message
 from bot.main import start, echo, caps, inline_caps, unknown, summarize, talk, collect_user_preference, \
     plan_trip_from_store, cancel, PREFERENCES, PLAN_TRIP, itinerary_handler
 import logger
@@ -20,6 +21,9 @@ application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build(
 start_handler = CommandHandler('start', start)
 application.add_handler(start_handler)
 application.add_handler(CallbackQueryHandler(itinerary_handler))
+
+application.add_handler(CommandHandler('info', start_info))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 # echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo)
 # echo_handler = CommandHandler('echo', echo)
