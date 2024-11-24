@@ -1,3 +1,5 @@
+import time
+
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from uuid import uuid4
@@ -82,48 +84,33 @@ I am going to provide you USER_PREFERENCES (preferences of each traveller) consi
 USER_PREFERENCES:
 """
 
+SUMMARIZE_TRIP_TEXT = """
+You are given a JSON object with multiple users' trip preferences. Summarize each user's preferences in a structured format. Mention their name and include details about the destination, budget, dates, and any preferences they have. Format the response cleanly for direct messaging.
 
-# async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     await context.bot.send_message(chat_id=update.effective_chat.id, text=START_TEXT)
+Example:
+Input: {867633191: '(name: German) I want to go to London. I am in Madrid. I want December 5th to 8th. Budget 1000. Wheelchair accessibility', 463557933: '(name: Dimash) I want to go to London. I am based in Astana. I have 7 days for the trip, from 5th December. My budget is 800 pounds. I can only eat vegan food'}
 
+Output:
+Thank you all! Here's what you've shared:
 
-### General ###
+Name: Dimash
+City/Destination: London
+Budget: 800 pounds
+Dates: 5th December to 12th December
+Preferences: Vegan food
+We'll use this information to plan your trip!
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=update.message.text)
+Name: German
+City/Destination: London
+Budget: 1000 pounds
+Dates: 5th December to 8th December
+Preferences: Wheelchair accessibility
+We'll use this information to plan your trip!
 
-async def caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text_caps = ' '.join(context.args).upper()
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=text_caps)
+Now, process the following JSON and provide the output in the same format:
 
-async def inline_caps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.inline_query.query
-    if not query:
-        return
-    results = []
-    results.append(
-        InlineQueryResultArticle(
-            id=str(uuid4()),
-            title='Caps',
-            input_message_content=InputTextMessageContent(query.upper())
-        )
-    )
-    await context.bot.answer_inline_query(update.inline_query.id, results)
-
-async def summarize(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = ' '.join(context.args)
-    preprompt = "Summarize the text below: \n\n"
-    
-    summary = get_model_response(''.join([preprompt, user_text]))
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=summary)
-
-async def talk(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = ' '.join(context.args)    
-    summary = get_model_response(user_text)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=summary)
-
-
-### Conversation ###
+{input_json}
+"""
 
 PREFERENCES, PLAN_TRIP, LOCATION, BIO = range(4)
 
@@ -168,6 +155,7 @@ async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_
 
     USER_PREFERENCES[user_id] = f"(name: {user_name}) {user_text}"
 
+
 async def plan_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("planning trip")
     log.info(USER_PREFERENCES)
@@ -183,6 +171,35 @@ async def plan_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
     return PLAN_TRIP
+
+
+async def summarise_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    log.info("Starting to summarize trip preferences...")
+    log.info(f"Current user preferences: {USER_PREFERENCES}")
+
+    try:
+        # Prepare the JSON input
+        input_json = json.dumps(USER_PREFERENCES)
+        log.info(f"Input JSON: {input_json}")
+
+        # Combine prompt and JSON
+        prompt = "".join([SUMMARIZE_TRIP_TEXT, input_json])
+        log.info(f"Prompt: {prompt}")
+
+        # Get response from the model
+        response = get_model_response(prompt)
+        log.info(f"Received response: {response}")
+
+        # Send the response to the user
+        await update.message.reply_text(
+            response.strip(),
+            parse_mode="HTML"  # Enable HTML formatting for clean display
+        )
+    except Exception as e:
+        log.error(f"Error processing trip summary: {e}")
+        await update.message.reply_text(
+            "Sorry, there was an error generating the trip summary. Please try again later."
+        )
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
