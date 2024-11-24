@@ -6,7 +6,7 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHan
 
 from bot.app import start_info, handle_message
 from bot.main import start, echo, caps, inline_caps, unknown, summarize, talk, collect_user_preference, \
-    plan_trip_from_store, cancel, PREFERENCES, PLAN_TRIP, itinerary_handler, recommend
+    plan_trip_from_store, cancel, PREFERENCES, PLAN_TRIP, itinerary_handler, recommend, flights
 import logger
 
 load_dotenv()
@@ -27,6 +27,9 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_m
 
 recommend_handler = CommandHandler('recommend', recommend)
 application.add_handler(recommend_handler)
+
+flights_handler = CommandHandler('flights', flights)
+application.add_handler(flights_handler)
 
 # echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo)
 # echo_handler = CommandHandler('echo', echo)

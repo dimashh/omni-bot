@@ -1,11 +1,11 @@
-import logging
 from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from uuid import uuid4
 from model import get_model_response
 from persistence.user_preference import USER_PREFERENCES
 from logger import log
-from search import search_maps, format_recommendation
+from search.maps import search_maps, format_recommendation
+from search.flights import search_flights, format_trip_details
 import json
 
 
@@ -242,4 +242,32 @@ async def recommend(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="Sorry, no recommendations found.",
+        )
+
+
+async def flights(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    response = search_flights("LHR", "HND", "2024-12-12")
+    print('response:', response)
+
+    if response:
+        for trip in response:
+            formatted_message = format_trip_details(trip)
+            print('formatted_message:', formatted_message)
+
+            first_flight_logo = trip["flights"][0].get("logo", None)
+            if first_flight_logo:
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=first_flight_logo
+                )
+
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=formatted_message,
+                parse_mode="HTML"
+            )
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Sorry, no flights found for your query."
         )

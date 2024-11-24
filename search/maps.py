@@ -9,21 +9,22 @@ client = serpapi.Client(api_key=os.getenv("SERP_API_KEY"))
 
 def search_maps(query: str):
     try:
-        response = client.search({
-            'engine': 'google_maps',
-            'type': 'search',
-            "google_domain": "google.com",
-            'q': query,
-            'll': "@51.51331694865533, -0.13800987399427414, 14z",
-            "hl": "en",
-            "gl": "uk"
-        })
-        print(response)
-        if response['search_metadata']['status'] == 'Success':
-            # take the top 3 results
-            return parse_response(response['local_results'][:3])
-        else:
-            return []
+        return parse_response({})
+        # response = client.search({
+        #     'engine': 'google_maps',
+        #     'type': 'search',
+        #     "google_domain": "google.com",
+        #     'q': query,
+        #     'll': "@51.51331694865533, -0.13800987399427414, 14z",
+        #     "hl": "en",
+        #     "gl": "uk"
+        # })
+        # print(response)
+        # if response['search_metadata']['status'] == 'Success':
+        #     # take the top 3 results
+        #     return parse_response(response['local_results'][:3])
+        # else:
+        #     return []
     except Exception as e:
         raise e
 
