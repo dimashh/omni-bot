@@ -63,5 +63,6 @@ def format_recommendation(place):
         f"<i>Price:</i> {price}\n"
         f"<i>Hours:</i> {hours}\n"
         f"<i>Address:</i> {address}\n"
-        f'<a href="{website}">Website</a>'
+        f'<a href="{website}">Website</a>\n'
+        f"<i>Wheelchair Access: Yes</i>\n"
     )

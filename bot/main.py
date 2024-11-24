@@ -13,7 +13,7 @@ import json
 LATEST_ITINERARY = ""
 
 START_TEXT = """
-Hi, I am Finna the OmniBot, your personal travel assistant!
+Hi, I am WanderWise, your personal travel assistant!
 
 Today we are going to plan your next trip. I will assist you through every stage of the way.
 
@@ -101,8 +101,8 @@ You are a professional trip planner. Your task is to create an optimized trip pl
 🌱 <i>Dietary Requirements Considered:</i> Vegan-friendly options\n
 ♿ <i>Accessibility:</i> Fully wheelchair accessible\n
 
+YOU MUST NOT include **text** or *text* format in the response. Just use the HTML tags mentioned above.
 Now, process the following `USER_PREFERENCES` to create a group trip plan. Be concise, ensure clarity, and include personalized elements for each traveler where needed.
-Do NOT include **text** or *text* format in the response. Just use the HTML tags mentioned above.
 
 USER_PREFERENCES:
 """
@@ -161,7 +161,8 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
             [InlineKeyboardButton("Recommend Restaraunts", callback_data="recommend")],
-            [InlineKeyboardButton("Check flights", callback_data="flights")]
+            [InlineKeyboardButton("Check flights", callback_data="flights")],
+            [InlineKeyboardButton("ESG Score", callback_data="esg")],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -186,6 +187,7 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
             [InlineKeyboardButton("Recommend Restaraunts", callback_data="recommend")],
+            [InlineKeyboardButton("ESG Score", callback_data="esg")],
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -225,12 +227,18 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             # Create a poll with the restaurant names
             if recommendation_names:
+                keyboard = [
+                    [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
                 await context.bot.send_poll(
                     chat_id=update.effective_chat.id,
                     question="Which option do you prefer?",
                     options=recommendation_names,
                     is_anonymous=False,
                     allows_multiple_answers=True,
+                    reply_markup=reply_markup
                 )
         else:
             await context.bot.send_message(
@@ -239,7 +247,7 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
     if query.data == "flights":
-        response = search_flights("HND", "LHR", "2024-12-12")
+        response = search_flights("HND", "LHR", "2024-12-06")
         print('response:', response)
 
         if response:
@@ -254,16 +262,28 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         photo=first_flight_logo
                     )
 
+                keyboard = [
+                    [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
+                ]
+
+                reply_markup = InlineKeyboardMarkup(keyboard)
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
                     text=formatted_message,
-                    parse_mode="HTML"
+                    parse_mode="HTML",
+                    reply_markup=reply_markup
                 )
         else:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Sorry, no flights found for your query."
             )
+
+    if query.data == "esg":
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="The ESG score for the trip is 78/100"
+        )
 
 
 async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_TYPE):

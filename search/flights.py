@@ -76,8 +76,7 @@ def parse_flights(response: list):
                 }
                 for layover in trip.get("layovers", [])
             ],
-            "flights": flights,
-            "total_carbon_emission": trip.get("carbon_emissions", {}).get("this_flight", "N/A")
+            "flights": flights
         })
 
     return parsed_trips
@@ -88,7 +87,6 @@ def format_trip_details(trip):
     flights = trip["flights"]
     price = trip["price"]
     total_duration = trip["total_duration"]
-    total_carbon_emission = trip["total_carbon_emission"]
     layovers = trip["layovers"]
 
     # Format total duration
@@ -100,7 +98,6 @@ def format_trip_details(trip):
         f"✈️ <b>Trip Summary</b>\n"
         f"💵 <i>Price:</i> ${price}\n"
         f"⏱️ <i>Total Duration:</i> {total_duration_formatted}\n"
-        f"🌱 <i>Total Carbon Emission:</i> {total_carbon_emission} kg\n"
     )
 
     # Add layovers
