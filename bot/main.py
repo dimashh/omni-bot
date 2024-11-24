@@ -161,6 +161,7 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
             [InlineKeyboardButton("Recommend Restaraunts", callback_data="recommend")],
+            [InlineKeyboardButton("Check flights", callback_data="flights")]
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -237,6 +238,33 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text="Sorry, no recommendations found.",
             )
 
+    if query.data == "flights":
+        response = search_flights("HND", "LHR", "2024-12-12")
+        print('response:', response)
+
+        if response:
+            for trip in response:
+                formatted_message = format_trip_details(trip)
+                print('formatted_message:', formatted_message)
+
+                first_flight_logo = trip["flights"][0].get("logo", None)
+                if first_flight_logo:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=first_flight_logo
+                    )
+
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=formatted_message,
+                    parse_mode="HTML"
+                )
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Sorry, no flights found for your query."
+            )
+
 
 async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("Preference: ")
@@ -304,30 +332,3 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
 
-
-async def flights(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    response = search_flights("LHR", "HND", "2024-12-12")
-    print('response:', response)
-
-    if response:
-        for trip in response:
-            formatted_message = format_trip_details(trip)
-            print('formatted_message:', formatted_message)
-
-            first_flight_logo = trip["flights"][0].get("logo", None)
-            if first_flight_logo:
-                await context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=first_flight_logo
-                )
-
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=formatted_message,
-                parse_mode="HTML"
-            )
-    else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Sorry, no flights found for your query."
-        )
