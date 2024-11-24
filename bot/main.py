@@ -10,7 +10,6 @@ from search.maps import search_maps, format_recommendation
 from search.flights import search_flights, format_trip_details
 import json
 
-
 START_TEXT = """
 Hi, I am Finna the OmniBot, your personal travel assistant!
 
@@ -154,10 +153,9 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("Itinerary handler")
     if query.data == "latest_itinerary":
         log.info("Sending latest itinerary")
-        latest = LATEST_ITINERARY if LATEST_ITINERARY != "" else ITINERARY_TEXT
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text=latest,
+            text=ITINERARY_TEXT,
             parse_mode='HTML'
         )
 
@@ -171,11 +169,60 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         LATEST_ITINERARY = response
 
+        keyboard = [
+            [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
+            [InlineKeyboardButton("Recommend Restaraunts", callback_data="recommend")],
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await context.bot.send_message(
             chat_id=query.message.chat_id,
             text=response,
-            parse_mode='HTML'
+            parse_mode='HTML',
+            reply_markup=reply_markup
         )
+
+    if query.data == "recommend":
+        log.info("Recommending")
+        response = search_maps("wheelchair access restaurant")
+
+        if response:
+            # Store restaurant names for the poll
+            recommendation_names = []
+
+            for place in response:
+                formatted_message = format_recommendation(place)
+                recommendation_names.append(place.get("title", "Unknown"))
+
+                if "thumbnail" in place and place["thumbnail"]:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=place["thumbnail"],
+                        caption=formatted_message,
+                        parse_mode="HTML"
+                    )
+                else:
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=formatted_message,
+                        parse_mode="HTML"
+                    )
+
+            # Create a poll with the restaurant names
+            if recommendation_names:
+                await context.bot.send_poll(
+                    chat_id=update.effective_chat.id,
+                    question="Which option do you prefer?",
+                    options=recommendation_names,
+                    is_anonymous=False,
+                    allows_multiple_answers=True,
+                )
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Sorry, no recommendations found.",
+            )
 
 
 async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -210,8 +257,7 @@ async def summarise_trip_from_store(update: Update, context: ContextTypes.DEFAUL
         log.info(f"Received response: {response}")
 
         keyboard = [
-            [InlineKeyboardButton("Plan Trip", callback_data="plan_trip")],
-            [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")]
+            [InlineKeyboardButton("Plan Trip", callback_data="plan_trip")]
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -244,49 +290,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Sorry, I didn't understand that command.")
-
-
-async def recommend(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = ' '.join(context.args)
-    # soho, london
-    response = search_maps(user_text)
-
-    if response:
-        # Store restaurant names for the poll
-        recommendation_names = []
-
-        for place in response:
-            formatted_message = format_recommendation(place)
-            recommendation_names.append(place.get("title", "Unknown"))
-
-            if "thumbnail" in place and place["thumbnail"]:
-                await context.bot.send_photo(
-                    chat_id=update.effective_chat.id,
-                    photo=place["thumbnail"],
-                    caption=formatted_message,
-                    parse_mode="HTML"
-                )
-            else:
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text=formatted_message,
-                    parse_mode="HTML"
-                )
-
-        # Create a poll with the restaurant names
-        if recommendation_names:
-            await context.bot.send_poll(
-                chat_id=update.effective_chat.id,
-                question="Which option do you prefer?",
-                options=recommendation_names,
-                is_anonymous=False,
-                allows_multiple_answers=True,
-            )
-    else:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="Sorry, no recommendations found.",
-        )
 
 
 async def flights(update: Update, context: ContextTypes.DEFAULT_TYPE):
