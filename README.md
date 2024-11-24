@@ -4,4 +4,4 @@
 - pip3 install -r requirements.txt
 
 # Run the app
-- uvicorn main:app --reload
+- python main.py
