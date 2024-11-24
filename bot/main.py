@@ -69,17 +69,39 @@ ITINERARY_TEXT = """
 """
 
 
-PREPROMPT_PLAN_TRIP = """You are a professional trip planner. You are planning a trip for a group of people with each having their individual needs and preferences.
-Create the most optimal trip that would satisfy the group and consider any sort of dietary requirements, accessability, such as wheelchair, wishlists and other other preferences.
-Make sure everyone on the trip can spend as much time together as possible. Staying in same hotels and eating in the same places would be ideal given they satisfy all the combined requirements.
-Use name to refer to the traveler, not id.
-Do not use variables in your responses (like USER_PREFERENCES).
+PREPROMPT_PLAN_TRIP = """
+You are a professional trip planner. Your task is to create an optimized trip plan based on a group of individuals with specific preferences and requirements. Use the preferences provided to:
 
-I am going to provide you USER_PREFERENCES (preferences of each traveller) consisting of:
-* prefered travel dates
-* starting location
-* prefered destination
-* other preferences and restrictions (dietary, accessability, wishlists, etc.)
+1. Plan a trip that satisfies as many of the group members' preferences as possible while considering:
+   - Dietary requirements
+   - Accessibility needs (e.g., wheelchair accessibility)
+   - Individual wishlists
+   - Budget constraints
+   - Preferred travel dates
+
+2. Ensure that the group can spend as much time together as possible. Staying in the same hotels, visiting the same attractions, and eating at the same places are ideal if they satisfy everyone's requirements.
+
+3. Use each person's name (not their ID) to refer to them in the plan.
+
+4. Format the response in **Telegram-friendly HTML**. Use only the following HTML tags:
+   - `<b>` for bold text
+   - `<i>` for italic text
+
+### Example Format:
+✈️ <b>Trip Plan</b>\n
+<i>Destination:</i> London\n
+<i>Group Members:</i> Dimash, German\n
+\n
+<b>Day 1</b>\n
+...
+<b>Day 2</b>\n
+...
+💵 <i>Total Estimated Cost Per Person:</i> 800 pounds\n
+🌱 <i>Dietary Requirements Considered:</i> Vegan-friendly options\n
+♿ <i>Accessibility:</i> Fully wheelchair accessible\n
+
+Now, process the following `USER_PREFERENCES` to create a group trip plan. Be concise, ensure clarity, and include personalized elements for each traveler where needed.
+Do NOT include **text** or *text* format in the response. Just use the HTML tags mentioned above.
 
 USER_PREFERENCES:
 """
@@ -107,6 +129,8 @@ Dates: 5th December to 8th December
 Preferences: Wheelchair accessibility
 We'll use this information to plan your trip!
 
+YOU MUST NOT include **text** or *text* format in the response. Just plain text.
+
 Now, process the following JSON and provide the output in the same format:
 
 {input_json}
@@ -117,15 +141,8 @@ PREFERENCES, PLAN_TRIP, LOCATION, BIO = range(4)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("Called start")
 
-    keyboard = [
-        [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")]
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
-        START_TEXT,
-        reply_markup=reply_markup
+        START_TEXT
     )
 
     return PREFERENCES
@@ -134,12 +151,29 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    log.info("Itinerary handler")
     if query.data == "latest_itinerary":
+        log.info("Sending latest itinerary")
         await context.bot.send_message(
             chat_id=query.message.chat_id,
             text=ITINERARY_TEXT,
             parse_mode='HTML'
         )
+
+    if query.data == "plan_trip":
+        log.info("Planning trip")
+        user_preferences = json.dumps(USER_PREFERENCES)
+        prompt = "".join([PREPROMPT_PLAN_TRIP, user_preferences])
+
+        response = get_model_response(prompt)
+        log.info("got response from model", response)
+
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=response,
+            parse_mode='HTML'
+        )
+
 
 async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("Preference: ")
@@ -154,24 +188,6 @@ async def collect_user_preference(update: Update, context: ContextTypes.DEFAULT_
     user_text = update.message.text
 
     USER_PREFERENCES[user_id] = f"(name: {user_name}) {user_text}"
-
-
-async def plan_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    log.info("planning trip")
-    log.info(USER_PREFERENCES)
-
-    user_preferences = json.dumps(USER_PREFERENCES)
-    prompt = "".join([PREPROMPT_PLAN_TRIP, user_preferences])
-
-    response = get_model_response(prompt)
-    log.info("got response from model")
-
-    await update.message.reply_text(
-        response
-    )
-
-    return PLAN_TRIP
-
 
 async def summarise_trip_from_store(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("Starting to summarize trip preferences...")
@@ -190,10 +206,18 @@ async def summarise_trip_from_store(update: Update, context: ContextTypes.DEFAUL
         response = get_model_response(prompt)
         log.info(f"Received response: {response}")
 
+        keyboard = [
+            [InlineKeyboardButton("Plan Trip", callback_data="plan_trip")],
+            [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")]
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         # Send the response to the user
         await update.message.reply_text(
             response.strip(),
-            parse_mode="HTML"  # Enable HTML formatting for clean display
+            parse_mode="HTML",
+            reply_markup=reply_markup
         )
     except Exception as e:
         log.error(f"Error processing trip summary: {e}")

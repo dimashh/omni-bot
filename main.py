@@ -6,7 +6,7 @@ from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHan
 
 from bot.app import start_info, handle_message
 from bot.main import start, collect_user_preference, \
-    plan_trip_from_store, cancel, PREFERENCES, PLAN_TRIP, itinerary_handler, recommend, flights, \
+ cancel, PREFERENCES, PLAN_TRIP, itinerary_handler, recommend, flights, \
     summarise_trip_from_store
 import logger
 
@@ -30,7 +30,7 @@ conv_handler = ConversationHandler(
     states={
         PREFERENCES: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, collect_user_preference),
-            CommandHandler("plan_trip", plan_trip_from_store),
+            # CommandHandler("plan_trip", plan_trip_from_store),
             CommandHandler("summarize", summarise_trip_from_store)
         ],
         PLAN_TRIP: [],
