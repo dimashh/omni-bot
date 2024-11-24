@@ -4,11 +4,13 @@ from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, 
 from telegram.ext import ContextTypes, ConversationHandler
 from uuid import uuid4
 from model import get_model_response
-from persistence.user_preference import USER_PREFERENCES, LATEST_ITINERARY
+from persistence.user_preference import USER_PREFERENCES
 from logger import log
 from search.maps import search_maps, format_recommendation
 from search.flights import search_flights, format_trip_details
 import json
+
+LATEST_ITINERARY = ""
 
 START_TEXT = """
 Hi, I am Finna the OmniBot, your personal travel assistant!
@@ -149,14 +151,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    global LATEST_ITINERARY
 
     log.info("Itinerary handler")
     if query.data == "latest_itinerary":
         log.info("Sending latest itinerary")
+        latest = LATEST_ITINERARY if LATEST_ITINERARY != "" else ITINERARY_TEXT
+
+        keyboard = [
+            [InlineKeyboardButton("Latest Itinerary", callback_data="latest_itinerary")],
+            [InlineKeyboardButton("Recommend Restaraunts", callback_data="recommend")],
+        ]
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text=ITINERARY_TEXT,
-            parse_mode='HTML'
+            text=latest,
+            parse_mode='HTML',
+            reply_markup=reply_markup
         )
 
     if query.data == "plan_trip":
