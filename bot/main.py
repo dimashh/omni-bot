@@ -4,7 +4,7 @@ from telegram import Update, InlineQueryResultArticle, InputTextMessageContent, 
 from telegram.ext import ContextTypes, ConversationHandler
 from uuid import uuid4
 from model import get_model_response
-from persistence.user_preference import USER_PREFERENCES
+from persistence.user_preference import USER_PREFERENCES, LATEST_ITINERARY
 from logger import log
 from search.maps import search_maps, format_recommendation
 from search.flights import search_flights, format_trip_details
@@ -154,9 +154,10 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     log.info("Itinerary handler")
     if query.data == "latest_itinerary":
         log.info("Sending latest itinerary")
+        latest = LATEST_ITINERARY if LATEST_ITINERARY != "" else ITINERARY_TEXT
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text=ITINERARY_TEXT,
+            text=latest,
             parse_mode='HTML'
         )
 
@@ -167,6 +168,8 @@ async def itinerary_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         response = get_model_response(prompt)
         log.info("got response from model", response)
+
+        LATEST_ITINERARY = response
 
         await context.bot.send_message(
             chat_id=query.message.chat_id,
